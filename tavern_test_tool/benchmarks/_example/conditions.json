@@ -1,0 +1,112 @@
+{
+  "$schema": "tavern_test_tool benchmark 定义。复制本目录、改名、改内容即可定义一个新的对照实验。",
+  "meta": {
+    "name": "example",
+    "description": "示例 benchmark：演示 conditions.json 的全部字段和常见 mod 类型。结合 README.md 阅读。",
+
+    "base_user_message_id": 1,
+    "$doc_base_user_message_id": "AI 回复每次都从哪一楼开始重生成。一般固定开场在 #0（assistant first_message），用户的初始指令在 #1。",
+
+    "base_user_message_default": "请按设定续写。",
+    "$doc_base_user_message_default": "如果某个 condition 没指定 userMessage，会回退到这条。"
+  },
+
+  "$doc_conditions": [
+    "每个 condition 描述一种实验对照变量。字段：",
+    "  label:        UI 显示名",
+    "  presetMods:   预设修改列表（数组，按序应用）。每条 mod 的字段：",
+    "                  idOrName: 目标 prompt 的 UUID 或名称（支持包含匹配，emoji 名也可）",
+    "                  op:       'setEnabled' | 'replace' | 'append' | 'prepend' |",
+    "                            'insertAfter' | 'insertBefore' | 'removeSubstr'",
+    "                  enabled:  仅 op=setEnabled 时使用",
+    "                  anchor:   仅 op=insertAfter / insertBefore 时使用（要定位的子串）",
+    "                  content:  插入/替换/追加/删除的内容文本",
+    "  userMessage:  把第 base_user_message_id 楼的用户消息改成这个",
+    "",
+    "runCell 内部会先 snapshotPreset(restoreFrom) → 改 #1 → 应用 mods → /trigger → 等结束 → 采样 → restorePreset。",
+    "所以 condition 之间是真·独立的，无须为每条 condition 写'还原步骤'。"
+  ],
+
+  "conditions": {
+    "C1_baseline": {
+      "label": "基线",
+      "presetMods": [],
+      "userMessage": "请按设定续写。"
+    },
+
+    "C2_toggle_one_prompt": {
+      "label": "开启某条 prompt",
+      "presetMods": [
+        {
+          "idOrName": "破限示例条目",
+          "op": "setEnabled",
+          "enabled": true
+        }
+      ],
+      "userMessage": "请按设定续写。"
+    },
+
+    "C3_inject_after_anchor": {
+      "label": "在某条 prompt 中锚点后注入文本",
+      "presetMods": [
+        {
+          "idOrName": "系统指令示例条目",
+          "op": "insertAfter",
+          "anchor": "你是一个写作助手。",
+          "content": " 此次回复请采用更细腻的描写风格。"
+        }
+      ],
+      "userMessage": "请按设定续写。"
+    },
+
+    "C4_replace_full_content": {
+      "label": "整段替换某条 prompt 的内容",
+      "presetMods": [
+        {
+          "idOrName": "风格说明示例条目",
+          "op": "replace",
+          "content": "采用极简白描风格，避免任何形容词。"
+        }
+      ],
+      "userMessage": "请按设定续写。"
+    },
+
+    "C5_combine_toggle_and_inject": {
+      "label": "组合：同时开启 + 注入",
+      "presetMods": [
+        { "idOrName": "破限示例条目", "op": "setEnabled", "enabled": true },
+        {
+          "idOrName": "系统指令示例条目",
+          "op": "insertAfter",
+          "anchor": "你是一个写作助手。",
+          "content": " 此次回复请采用更细腻的描写风格。"
+        }
+      ],
+      "userMessage": "请按设定续写。"
+    },
+
+    "C6_change_user_message_only": {
+      "label": "仅改用户首句指令（不改预设）",
+      "presetMods": [],
+      "userMessage": "请按设定续写，结尾留一个开放性悬念。"
+    }
+  },
+
+  "$doc_profiles": [
+    "把模型代号映射到 SillyTavern 的 connection profile 名（顶栏切换 API 时的下拉项）。",
+    "runCell 调 /profile <profileName> 切换。profile 名必须与酒馆里完全一致。",
+    "model_label 仅用于落盘文件夹命名和报告，与切换无关。"
+  ],
+
+  "profiles": {
+    "M-A": {
+      "profileName": "your-profile-name-A",
+      "model_label": "model-a"
+    },
+    "M-B": {
+      "profileName": "your-profile-name-B",
+      "model_label": "model-b",
+      "note": "可选：人类备注。例如某 profile 需要手动二次确认模型档位"
+    }
+  }
+}
